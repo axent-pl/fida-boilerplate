@@ -1,0 +1,87 @@
+version: '3.4'
+
+name: fida
+
+services:
+
+  authorization-server:
+    platform: linux/x86_64
+    build: 
+      context: services/authorization-server
+    command:
+      - start-dev
+      - --http-port=2380
+      - --http-relative-path=/auth
+      - --import-realm
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "2380:2380"
+    networks:
+      - ax
+
+  gateway:
+    build:
+      context: services/gateway
+    environment:
+      KONG_DATABASE: off
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_ADMIN_GUI_LISTEN: "0.0.0.0:8002"
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_DECLARATIVE_CONFIG: "/opt/kong/kong.yaml"
+      AS_HOST: ${AS_HOST}
+      AS_PORT: ${AS_PORT}
+      GW_ETL_HOST: ${GW_ETL_HOST}
+      GW_ETL_PORT: ${GW_ETL_PORT}
+      UPSTREAM_HOST: ${UPSTREAM_HOST}
+      UPSTREAM_PORT: ${UPSTREAM_PORT}
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8002:8002
+    healthcheck:
+      test: [ "CMD", "kong", "health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - ax
+
+  gateway-etl:
+    build:
+      context: services/gateway-etl
+    environment:
+      - LOG_AGG_HOST=${LOG_AGG_HOST}
+    networks:
+      - ax
+
+  log-dashboard:
+    build: 
+      context: services/log-dashboard
+    ports:
+      - 3000:3000
+    depends_on:
+      log-aggregator:
+        condition: service_healthy
+    networks:
+      - ax
+
+  log-aggregator:
+    build: 
+      context: services/log-aggregator
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://log-aggregator:3100/ready"]
+      interval: 5s
+      timeout: 10s
+      retries: 6
+    networks:
+      - ax
+
+networks:
+  ax:
+    driver: bridge

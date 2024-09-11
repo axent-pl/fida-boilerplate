@@ -1,0 +1,90 @@
+_format_version: '3.0'
+_transform: true
+plugins:
+- name: tcp-log
+  config:
+    host: ${GW_ETL_HOST}
+    port: ${GW_ETL_PORT}
+# - name: prometheus
+#   config:
+#     latency_metrics: true
+#     upstream_health_metrics: true
+#     per_consumer: true
+#     status_code_metrics: true
+#     bandwidth_metrics: true
+- name: jwt
+  config:  
+    key_claim_name: preferred_username
+    secret_is_base64: false
+    run_on_preflight: true
+consumers:
+- username: jwt-consumer
+  custom_id: jwt-consumer-id
+  jwt_secrets:
+  - algorithm: RS256
+    secret: bank-app-user
+    key: bank-app-user
+    rsa_public_key: |-
+      -----BEGIN PUBLIC KEY-----
+      MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAqi32ruIMLgsLhePY2lqRBo+1YnNrE7NyE827lWyEgH1zfI+WKktlH9rOiSt4wZOgHVCg9B0QNSipXkqfV9HxfSBi6KIkkxtpAErFGbhK4vTYooKNDgkCZ0A6U7jqW1l2HtzxHm5UyVnedW/lmqJmX2D4XMkWlX6FmoAXkOa9Si+qwGJTaDhVHx7B4OfmsNPIcia20ujrzoha6c1L4Na2bxt9XyQPt1M873brHgKqN7qc2VCFS212qb3PwBRjl8WA4M7UoWxMkyZAoHbLjdZksZJ1vE4pASfNo0rRo0awLNSE7pjy/9pdoJ4rSKw1s4Ww6E7FEUVSvMoffVnaEuQv6uZOmK1B6ixkaER0NYzlubHUIZhwO9fQHwTgYv9YUoD9X2O9WZDB2+DlkazToem+wO7nJ562o8zXGi4zGEm9lP54mA5tyyJqbmOoAA4bZpWaphiMxx07vwULlRMFapIwbRbMsHnjBbe0VkRl21dyqbIW8yracSql0YhKohnovEDhh6McuPuGqsxAsrjR5V7KBDF6Xp37f//JSKNhym1jVf7F6Mi6bYhy2eIF9CKrYRC5aFWg0f08sMiGiepsBWeo16hocI2Ec0kMZPKDGoA+OpSIy77ZZUO8zGVYk7Uqup7vnQfCS/oREGsLwOYG879ajqlguNFNC4ZIP0HCrnC7bb8CAwEAAQ==
+      -----END PUBLIC KEY-----
+services:
+- name: adagio-angora
+  url: https://${UPSTREAM_HOST}:${UPSTREAM_PORT}
+  routes:
+  - name: adagio-angora-route-create
+    hosts:
+    - adagio-angora.gateway.bank
+    paths:
+    - /anything
+    strip_path: false
+    methods:
+    - POST
+  - name: adagio-angora-route-read
+    hosts:
+    - adagio-angora.gateway.bank
+    paths:
+    - ~/anything/(?<resource>\w+)
+    strip_path: false
+    methods:
+    - GET
+    plugins:
+    - name: jwt
+      config:  
+        key_claim_name: preferred_username
+    - name: request-transformer
+      config:
+        replace:
+          uri: /anything/prefixed-$(uri_captures['resource'])
+  - name: adagio-angora-route-update
+    hosts:
+    - adagio-angora.gateway.bank
+    paths:
+    - ~/anything/(?<resource>\w+)
+    strip_path: false
+    methods:
+    - PUT
+    plugins:
+    - name: jwt
+      config:  
+        key_claim_name: preferred_username
+    - name: request-transformer
+      config:
+        replace:
+          uri: /anything/prefixed-$(uri_captures['resource'])
+  - name: adagio-angora-route-list
+    hosts:
+    - adagio-angora.gateway.bank
+    paths:
+    - ~/anything/(?<resource>\w+)
+    strip_path: false
+    methods:
+    - GET
+    plugins:
+    - name: jwt
+      config:  
+        key_claim_name: preferred_username
+    - name: request-transformer
+      config:
+        replace:
+          uri: /$(uri_captures['resource'])
