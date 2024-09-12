@@ -7,7 +7,8 @@ RUN apt update && \
     tar -xf deck.tar.gz -C /tmp && \
     mv /tmp/deck /usr/local/bin/
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY --chown=kong:kong docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
+COPY --chown=kong:kong kong.yaml /opt/kong/kong.yaml
 
 USER kong
-COPY --chown=kong:kong kong.yaml /opt/kong/kong.yaml
+ENTRYPOINT [ "/docker-entrypoint-wrapper.sh" ]
