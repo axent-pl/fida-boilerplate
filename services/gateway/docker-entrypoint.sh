@@ -9,6 +9,18 @@ echo "$(sed 's/${GW_ETL_PORT}/'$GW_ETL_PORT'/g' /opt/kong/kong.yaml)" > /opt/kon
 echo "$(sed 's/${UPSTREAM_HOST}/'$UPSTREAM_HOST'/g' /opt/kong/kong.yaml)" > /opt/kong/kong.yaml
 echo "$(sed 's/${UPSTREAM_PORT}/'$UPSTREAM_PORT'/g' /opt/kong/kong.yaml)" > /opt/kong/kong.yaml
 
+while true; do
+  AS_SIGN_KEY=$(curl -s -f http://authorization-server:2380/auth/realms/bank 2>/dev/null | cut -d "," -f2 | cut -d ":" -f 2 | tr -d '"')
+  if [ ! -z "$AS_SIGN_KEY" ]; then
+    echo "[INFO ][axent-pl]: public key fetched from AS"
+    ESCAPED_AS_SIGN_KEY=$(echo "$AS_SIGN_KEY" | sed 's:/:\\/:g')
+    echo "$(sed 's/${AS_SIGN_KEY}/'$ESCAPED_AS_SIGN_KEY'/g' /opt/kong/kong.yaml)" > /opt/kong/kong.yaml
+    break
+  fi
+  echo "[INFO ][axent-pl]: Could not fetch AS public key"
+  sleep 5
+done
+
 load_config() {
   SECONDS=0
   echo "[INFO ][axent-pl]: startup started"

@@ -9,6 +9,7 @@ AS_SECRET = 'rifb7zJJzE2RKStq74pEPMg29W5GkyIC'
 AS_USER = 'bank-app-user'
 AS_PASS = 'bankappuserpass'
 
+# http://localhost:2380/auth/realms/bank/.well-known/openid-configuration
 
 def get_authorization():
     url = f'{AS_ORIGIN}/auth/realms/{AS_REALM}/protocol/openid-connect/token'

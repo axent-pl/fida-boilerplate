@@ -26,7 +26,7 @@ consumers:
     key: bank-app-user
     rsa_public_key: |-
       -----BEGIN PUBLIC KEY-----
-      MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAqi32ruIMLgsLhePY2lqRBo+1YnNrE7NyE827lWyEgH1zfI+WKktlH9rOiSt4wZOgHVCg9B0QNSipXkqfV9HxfSBi6KIkkxtpAErFGbhK4vTYooKNDgkCZ0A6U7jqW1l2HtzxHm5UyVnedW/lmqJmX2D4XMkWlX6FmoAXkOa9Si+qwGJTaDhVHx7B4OfmsNPIcia20ujrzoha6c1L4Na2bxt9XyQPt1M873brHgKqN7qc2VCFS212qb3PwBRjl8WA4M7UoWxMkyZAoHbLjdZksZJ1vE4pASfNo0rRo0awLNSE7pjy/9pdoJ4rSKw1s4Ww6E7FEUVSvMoffVnaEuQv6uZOmK1B6ixkaER0NYzlubHUIZhwO9fQHwTgYv9YUoD9X2O9WZDB2+DlkazToem+wO7nJ562o8zXGi4zGEm9lP54mA5tyyJqbmOoAA4bZpWaphiMxx07vwULlRMFapIwbRbMsHnjBbe0VkRl21dyqbIW8yracSql0YhKohnovEDhh6McuPuGqsxAsrjR5V7KBDF6Xp37f//JSKNhym1jVf7F6Mi6bYhy2eIF9CKrYRC5aFWg0f08sMiGiepsBWeo16hocI2Ec0kMZPKDGoA+OpSIy77ZZUO8zGVYk7Uqup7vnQfCS/oREGsLwOYG879ajqlguNFNC4ZIP0HCrnC7bb8CAwEAAQ==
+      ${AS_SIGN_KEY}
       -----END PUBLIC KEY-----
 services:
 - name: adagio-angora
