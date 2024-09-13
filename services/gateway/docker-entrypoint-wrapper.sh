@@ -18,9 +18,9 @@ echo "$(sed 's/${GW_ETL_PORT}/'$GW_ETL_PORT'/g' /opt/kong/kong.yaml)" > /opt/kon
 echo "$(sed 's/${UPSTREAM_HOST}/'$UPSTREAM_HOST'/g' /opt/kong/kong.yaml)" > /opt/kong/kong.yaml
 echo "$(sed 's/${UPSTREAM_PORT}/'$UPSTREAM_PORT'/g' /opt/kong/kong.yaml)" > /opt/kong/kong.yaml
 
-
+AS_REALM_URL="${AS_ORIGIN}/auth/realms/${AS_REALM}"
 while true; do
-  AS_SIGN_KEY=$(curl -s -f http://authorization-server:2380/auth/realms/bank 2>/dev/null | cut -d "," -f2 | cut -d ":" -f 2 | tr -d '"')
+  AS_SIGN_KEY=$(curl -s -f $AS_REALM_URL 2>/dev/null | cut -d "," -f2 | cut -d ":" -f 2 | tr -d '"')
   if [ ! -z "$AS_SIGN_KEY" ]; then
     axent_log "public key fetched from AS"
     ESCAPED_AS_SIGN_KEY=$(echo "$AS_SIGN_KEY" | sed 's:/:\\/:g')

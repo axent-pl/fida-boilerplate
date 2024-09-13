@@ -36,6 +36,8 @@ services:
       KONG_DECLARATIVE_CONFIG: "/opt/kong/kong.yaml"
       AS_HOST: ${AS_HOST}
       AS_PORT: ${AS_PORT}
+      AS_ORIGIN: ${AS_ORIGIN}
+      AS_REALM: ${AS_REALM}
       GW_ETL_HOST: ${GW_ETL_HOST}
       GW_ETL_PORT: ${GW_ETL_PORT}
       UPSTREAM_HOST: ${UPSTREAM_HOST}
