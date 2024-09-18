@@ -2,19 +2,14 @@ import json
 import hashlib
 import base64
 import secrets
+import redis
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
 from jwcrypto import jwt, jwk
-from jwcrypto.common import json_decode
 
-import  app.models as models
-import  app.dto as dto
 
-###############################################################################
-
-def find_all_sign_keys():
-    pass
+import app.models as models
+import app.dto as dto
 
 sign_key = None
 
@@ -29,23 +24,33 @@ def get_token_claims(token:str) -> dict:
     claims = json.loads(verified_jwt.claims)
     return claims
 
-def sign_token(claims: dict) -> dto.TokenDTO:
+def issue_token(claims: dict) -> dto.TokenDTO:
     token = jwt.JWT(header={'alg': 'HS256'}, claims=json.dumps(claims))
     token.make_signed_token(get_sign_key())
     return dto.TokenDTO(type='Bearer',access_token=token.serialize(),refresh_token=token.serialize())
 
-def find_all_consents(username: str, client_id: str, db: Session) -> List[dto.ConsentDTO]:
-    db_consents = db.query(models.Consent).filter(
-        models.Consent.user_id == db.query(models.User).filter(models.User.username == username).first().id,
-        models.Consent.client_id == db.query(models.Client).filter(models.Client.client_external_id == client_id).first().id
-    ).all()
-    return db_consents
-
-###############################################################################
-
-def get_authorization_code(redirect_uri: str, client_id: str, length: int = 32):
+def get_authorization_code(redirect_uri: str, client_id: str, code_db: redis.Redis, length: int = 32) -> str:
+    data = json.dumps({
+        'redirect_uri': redirect_uri,
+        'client_id': client_id,
+    })
     authorization_code = secrets.token_urlsafe(length)
+    code_db.set(authorization_code, data, ex=30)
     return authorization_code
+
+def is_authorization_code_valid(authorization_code: str, redirect_uri: str, client_id: str, code_db: redis.Redis) -> bool:
+    data_json = code_db.get(authorization_code)
+    if data_json is None:
+        return False
+    data = json.loads(data_json)
+    if data.get('redirect_uri') != redirect_uri:
+        return False
+    if data.get('client_id') != client_id:
+        return False
+    
+    code_db.delete(authorization_code)
+
+    return True
 
 def hash(string_list, hash_length=16):
     combined_string = '/'.join(string_list)

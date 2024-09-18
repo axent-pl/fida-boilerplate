@@ -1,0 +1,219 @@
+{
+	"info": {
+		"_postman_id": "1547808a-09d3-4b6e-ad91-881dd0125e68",
+		"name": "FIDA",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "169649"
+	},
+	"item": [
+		{
+			"name": "CS User jane",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Your test name\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.username).to.eql(\"jane-bar-com\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"jane-bar-com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CS_ORIGIN}}/user/jane-bar-com",
+					"host": [
+						"{{CS_ORIGIN}}"
+					],
+					"path": [
+						"user",
+						"jane-bar-com"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CS User john",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Your test name\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.username).to.eql(\"john-foo-com\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"john-foo-com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CS_ORIGIN}}/user/john-foo-com",
+					"host": [
+						"{{CS_ORIGIN}}"
+					],
+					"path": [
+						"user",
+						"john-foo-com"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CS Client fisp-acme",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Your test name\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.client_external_id).to.eql(\"fisp-acme\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"client_external_id\": \"fisp-acme\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CS_ORIGIN}}/client/fisp-acme",
+					"host": [
+						"{{CS_ORIGIN}}"
+					],
+					"path": [
+						"client",
+						"fisp-acme"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CS Client fisp-umbrella",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Your test name\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.client_external_id).to.eql(\"fisp-umbrella\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"client_external_id\": \"fisp-umbrella\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{CS_ORIGIN}}/client/fisp-umbrella",
+					"host": [
+						"{{CS_ORIGIN}}"
+					],
+					"path": [
+						"client",
+						"fisp-umbrella"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "CS_ORIGIN",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
