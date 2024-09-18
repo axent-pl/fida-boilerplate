@@ -16,10 +16,10 @@ import app.dto as dto
 import app.service as service
 import app.response_handlers as response_handlers
 import app.components as components
+import app.config as config
 
-
-CS_SESSION_SECRET = 'some-secret-???'
-
+from app.client_service import ClientService
+from app.user_service import UserService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
-app.add_middleware(SessionMiddleware, secret_key=CS_SESSION_SECRET)
+app.add_middleware(SessionMiddleware, secret_key=config.settings.CS_SESSION_SECRET)
 
 ###############################################################################
 
@@ -38,15 +38,15 @@ async def upsert_product_type(urn: str, product_type: dto.ProductTypeDTO, db: Se
 
 
 @app.put("/admin/user/{username}")
-async def upsert_user(username: str, user: dto.UserDTO, db: Session = Depends(components.get_db)):
+async def upsert_user(username: str, user: dto.UserDTO, user_service: UserService = Depends(UserService)):
     user.username = username
-    return service.upsert_user(user=user, db=db)
+    return user_service.upsert_user(user=user)
 
 
 @app.put("/admin/client/{id}")
-async def upsert_client(id: str, client: dto.ClientDTO, db: Session = Depends(components.get_db)):
+async def upsert_client(id: str, client: dto.ClientDTO, client_service: ClientService = Depends(ClientService)):
     client.id = id
-    return service.upsert_client(client, db)
+    return client_service.upsert_client(client)
 
 ###############################################################################
 
@@ -78,7 +78,7 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
             consent.status = form_consents[consent.key]
     updated_consents = service.upsert_client_user_consents(consents=consents, db=db)
 
-    authorization_code = service.get_authorization_code(redirect_uri=redirect_uri, client_id=client_id, code_db=code_db)
+    authorization_code = service.get_authorization_code(redirect_uri=redirect_uri, client_id=client_id, username=user.username, code_db=code_db)
     
     redirect_url = URL(redirect_uri)
     redirect_url = redirect_url.include_query_params(code=authorization_code)
@@ -96,11 +96,15 @@ async def issue_token(request: Request, client_id: str = Form(), client_secret: 
     # * by client_assertion_type='urn:ietf:params:oauth:client-assertion-type:jwt-bearer' and client_assertion
 
     if grant_type == 'authorization_code':
-        if not service.is_authorization_code_valid(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id, code_db=code_db):
+        authorization_request = service.get_authorization_request(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id, code_db=code_db)
+        if not authorization_request:
             raise HTTPException(status_code=400, detail="Invalid authorization_code")
+        consents = service.get_client_user_consents(username=authorization_request.get('username'), client_id=client_id, db=db)
         claims = {
-            'iss' : 'consent-service',
-            'scopes': 'get scopes from db'
+            'iss': 'consent-service',
+            'typ': 'Bearer',
+            'azp': client_id,
+            'fida_access': [ f'{c.product_type_urn}{c.product_id}' for c in consents if c.status == dto.ConsentStatusEnum.granted ]
         }
         token = service.issue_token(claims)
         return token

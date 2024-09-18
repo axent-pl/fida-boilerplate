@@ -6,10 +6,7 @@ from fastapi import Depends, Request
 
 import app.database as database
 import app.dto as dto
-
-
-CS_CODE_DB_ORIGIN = os.environ.get('CS_CODE_DB_ORIGIN') or 'redis://localhost:6379'
-CS_SESSION_DB_ORIGIN = os.environ.get('CS_SESSION_DB_ORIGIN') or 'redis://localhost:6379'
+import app.config as config
 
 async def get_db():
     db = database.SessionLocal()
@@ -19,14 +16,14 @@ async def get_db():
         db.close()
 
 async def get_session_db():
-    redis_client = redis.Redis.from_url(CS_SESSION_DB_ORIGIN)
+    redis_client = redis.Redis.from_url(config.settings.CS_SESSION_DB_ORIGIN)
     try:
         yield redis_client
     finally:
         redis_client.close()
 
 async def get_code_db():
-    redis_client = redis.Redis.from_url(CS_CODE_DB_ORIGIN)
+    redis_client = redis.Redis.from_url(config.settings.CS_CODE_DB_ORIGIN)
     try:
         yield redis_client
     finally:

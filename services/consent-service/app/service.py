@@ -29,28 +29,29 @@ def issue_token(claims: dict) -> dto.TokenDTO:
     token.make_signed_token(get_sign_key())
     return dto.TokenDTO(type='Bearer',access_token=token.serialize(),refresh_token=token.serialize())
 
-def get_authorization_code(redirect_uri: str, client_id: str, code_db: redis.Redis, length: int = 32) -> str:
+def get_authorization_code(redirect_uri: str, client_id: str, username:str, code_db: redis.Redis, length: int = 32) -> str:
     data = json.dumps({
         'redirect_uri': redirect_uri,
         'client_id': client_id,
+        'username': username,
     })
     authorization_code = secrets.token_urlsafe(length)
     code_db.set(authorization_code, data, ex=30)
     return authorization_code
 
-def is_authorization_code_valid(authorization_code: str, redirect_uri: str, client_id: str, code_db: redis.Redis) -> bool:
+def get_authorization_request(authorization_code: str, redirect_uri: str, client_id: str, code_db: redis.Redis) -> dict:
     data_json = code_db.get(authorization_code)
     if data_json is None:
-        return False
+        return None
     data = json.loads(data_json)
     if data.get('redirect_uri') != redirect_uri:
-        return False
+        return None
     if data.get('client_id') != client_id:
-        return False
+        return None
     
     code_db.delete(authorization_code)
 
-    return True
+    return data
 
 def hash(string_list, hash_length=16):
     combined_string = '/'.join(string_list)
@@ -147,21 +148,6 @@ def get_client_user_consents(username: str, client_id: str, db: Session, refresh
         )
     return list(all_consents.values())
 
-def upsert_user(user: dto.UserDTO, db: Session) -> dto.UserDTO:
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
-    if db_user is None:
-        new_user = models.User(username=user.username)
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        return dto.UserDTO(
-            username=new_user.username
-        )
-    else:
-        return dto.UserDTO(
-            username=db_user.username
-        )
-
 def upsert_product_type(product_type: dto.ProductTypeDTO, db: Session) -> dto.ProductTypeDTO:
     db_product_type = db.query(models.ProductType).filter(models.ProductType.urn == product_type.urn).first()
     if db_product_type is None:
@@ -181,26 +167,3 @@ def upsert_product_type(product_type: dto.ProductTypeDTO, db: Session) -> dto.Pr
             urn=db_product_type.urn,
             name=db_product_type.name
         )
-
-def upsert_client(client: dto.ClientDTO, db: Session) -> dto.ClientDTO:
-    db_client = db.query(models.Client).filter(models.Client.id == client.id).first()
-    if db_client is None:
-        new_client = models.Client(
-            id=client.id,
-            redirect_uri=client.redirect_uri
-        )
-        db.add(new_client)
-        db.commit()
-        db.refresh(new_client)
-        return dto.ClientDTO(
-            id=new_client.id,
-            redirect_uri=new_client.redirect_uri
-        )
-    else:
-        db_client.redirect_uri = client.redirect_uri
-        db.commit()
-        db.refresh(db_client)
-        return dto.ClientDTO(
-                id=db_client.id,
-                redirect_uri=db_client.redirect_uri
-            )
