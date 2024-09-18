@@ -7,7 +7,7 @@ import app.dto as dto
 import app.models as models
 import app.utils as utils
 
-from app.product_type_service import ProductTypeService
+from app.srv.product_type_service import ProductTypeService
 
 class ConsentService:
 

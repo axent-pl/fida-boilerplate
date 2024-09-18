@@ -18,10 +18,11 @@ import app.response_handlers as response_handlers
 import app.components as components
 import app.config as config
 
-from app.client_service import ClientService
-from app.user_service import UserService
-from app.product_type_service import ProductTypeService
-from app.consent_service import ConsentService
+from app.srv.client_service import ClientService
+from app.srv.user_service import UserService
+from app.srv.product_type_service import ProductTypeService
+from app.srv.consent_service import ConsentService
+from app.srv.authorization_service import AuthorizationService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,7 +66,7 @@ async def get_authorization_grants(request: Request, client_id: str, scope: str,
     return response_handlers.html({'consents':consents, 'client': client}, 'authorization-grants.html')
 
 @app.post('/authorization_grants')
-async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, consent_service: ConsentService = Depends(ConsentService), user: dto.UserDTO = Depends(components.get_user), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
+async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, consent_service: ConsentService = Depends(ConsentService), user: dto.UserDTO = Depends(components.get_user), authorization_service: AuthorizationService = Depends(AuthorizationService), client_service: ClientService = Depends(ClientService)):
     consents = consent_service.find_all_by_username_and_client_id(username=user.username, client_id=client_id)
     
     client = client_service.get_client(client_id=client_id)
@@ -80,7 +81,7 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
             consent.status = form_consents[consent.key]
     updated_consents = consent_service.upsert(consents=consents)
 
-    authorization_code = service.get_authorization_code(redirect_uri=redirect_uri, client_id=client_id, username=user.username, code_db=code_db)
+    authorization_code = authorization_service.get_authorization_code(redirect_uri=redirect_uri, client_id=client_id, username=user.username)
     
     redirect_url = URL(redirect_uri)
     redirect_url = redirect_url.include_query_params(code=authorization_code)
@@ -88,7 +89,7 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
     return RedirectResponse(url=str(redirect_url), status_code=303)
 
 @app.post('/token')
-async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), consent_service: ConsentService = Depends(ConsentService), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
+async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), consent_service: ConsentService = Depends(ConsentService), authorization_service: AuthorizationService = Depends(AuthorizationService), client_service: ClientService = Depends(ClientService)):
     client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
@@ -98,7 +99,7 @@ async def issue_token(request: Request, client_id: str = Form(), client_secret: 
     # * by client_assertion_type='urn:ietf:params:oauth:client-assertion-type:jwt-bearer' and client_assertion
 
     if grant_type == 'authorization_code':
-        authorization_request = service.get_authorization_request(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id, code_db=code_db)
+        authorization_request = authorization_service.get_authorization_request(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id)
         if not authorization_request:
             raise HTTPException(status_code=400, detail="Invalid authorization_code")
         consents = consent_service.find_all_by_username_and_client_id(username=authorization_request.get('username'), client_id=client_id)
