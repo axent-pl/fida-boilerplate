@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}Authorization grants for {{ data.client.id }}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+{% for consent in data.consents %}
+<div class="field">
+    <div class="control">
+        <label class="checkbox">
+            {% if consent.type == 'generic' %}
+            <input type="hidden" name="{{ consent.key }}" value="revoked" />
+            <input type="checkbox" name="{{ consent.key }}" value="granted" {% if consent.status == 'granted' %}checked{% endif %} />
+            {{ consent.product_type_urn }}
+            {% else %}
+            <input type="hidden" name="{{ consent.key }}" value="revoked" />
+            <input type="checkbox" name="{{ consent.key }}" value="granted" {% if consent.status == 'granted' %}checked{% endif %} />
+            {{ consent.product_type_urn }} {{ consent.product_id }}
+            {% endif %}
+        </label>
+    </div>
+</div>
+{% endfor %}
+<div class="field is-grouped">
+    <div class="control">
+      <button class="button is-link" type="submit">Submit</button>
+    </div>
+    <div class="control">
+      <button class="button is-link is-light">Cancel</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

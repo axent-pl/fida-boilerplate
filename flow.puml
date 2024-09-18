@@ -1,0 +1,41 @@
+@startuml fida-flow
+
+box "User"
+    actor User as User
+    participant Browser as Browser
+end box
+participant "FISP" as FISP
+box "Data Owner"
+    participant "Consent Service" as CS
+    participant "Auth Server" as AS
+    participant "Gateway" as GW
+end box
+
+User -> Browser ++: Open FISP application
+Browser -> FISP ++: GET /application
+return redirect to CS/authorization-grants [http redirect]
+Browser -> CS ++: GET /authorization-grants
+return redirect to AS/login [http redirect]
+Browser -> AS ++: GET /login
+return login page [html]
+return login page [html]
+
+User -> Browser ++: enter credentials
+Browser -> AS ++: POST /login (credentials)
+return redirect to CS (with AS authorization code) [http redirect]
+Browser -> CS ++: GET authorization grants (with AS authorization code)
+return authorization grants page [html]
+return authorization grants page [html]
+
+User -> Browser ++: select authorization grants
+Browser -> CS ++: POST authorization grants
+return redirect to FISP (with CS authorization code) [http redirect]
+Browser -> FISP ++: GET fisp application (with CS authorization code)
+FISP -> CS ++: POST /token
+return access_token and refresh_roken [json]
+FISP -> GW ++: GET FIDA data
+return FIDA data [json]
+return fisp application with user data [html]
+return FISP application page with user data [html]
+
+@enduml
