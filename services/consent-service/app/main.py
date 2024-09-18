@@ -20,6 +20,7 @@ import app.config as config
 
 from app.client_service import ClientService
 from app.user_service import UserService
+from app.product_type_service import ProductTypeService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,9 +33,9 @@ app.add_middleware(SessionMiddleware, secret_key=config.settings.CS_SESSION_SECR
 ###############################################################################
 
 @app.put('/admin/product-type/{urn}')
-async def upsert_product_type(urn: str, product_type: dto.ProductTypeDTO, db: Session = Depends(components.get_db)):
+async def upsert_product_type(urn: str, product_type: dto.ProductTypeDTO, product_type_service: ProductTypeService = Depends(ProductTypeService)):
      product_type.urn = urn
-     return service.upsert_product_type(product_type=product_type, db=db)
+     return product_type_service.upsert_product_type(product_type=product_type)
 
 
 @app.put("/admin/user/{username}")
@@ -51,10 +52,10 @@ async def upsert_client(id: str, client: dto.ClientDTO, client_service: ClientSe
 ###############################################################################
 
 @app.get('/authorization_grants')
-async def get_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user)):
+async def get_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user), client_service: ClientService = Depends(ClientService)):
     consents = service.get_client_user_consents(username=user.username, client_id=client_id, db=db)
     
-    client = service.get_client(client_id=client_id, db=db)
+    client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
     if not redirect_uri.startswith(client.redirect_uri):
@@ -63,10 +64,10 @@ async def get_authorization_grants(request: Request, client_id: str, scope: str,
     return response_handlers.html({'consents':consents, 'client': client}, 'authorization-grants.html')
 
 @app.post('/authorization_grants')
-async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user), code_db: redis.Redis = Depends(components.get_code_db)):
+async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
     consents = service.get_client_user_consents(username=user.username, client_id=client_id, db=db)
     
-    client = service.get_client(client_id=client_id, db=db)
+    client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
     if not redirect_uri.startswith(client.redirect_uri):
@@ -86,8 +87,8 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
     return RedirectResponse(url=str(redirect_url), status_code=303)
 
 @app.post('/token')
-async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), db: Session = Depends(components.get_db), code_db: redis.Redis = Depends(components.get_code_db)):
-    client = service.get_client(client_id=client_id, db=db)
+async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), db: Session = Depends(components.get_db), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
+    client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
     

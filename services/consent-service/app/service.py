@@ -60,15 +60,6 @@ def hash(string_list, hash_length=16):
     base64_encoded = base64.urlsafe_b64encode(hash_digest).decode()
     return base64_encoded[:hash_length]
 
-def get_client(client_id:str, db: Session) -> dto.ClientDTO:
-    db_client = db.query(models.Client).filter(models.Client.id == client_id).first()
-    if db_client is not None:
-        return dto.ClientDTO(
-            id = db_client.id,
-            redirect_uri=db_client.redirect_uri
-            )
-    return None
-
 def get_all_product_types(db: Session) -> dto.ProductTypeDTO:
     product_types = []
     db_product_types = db.query(models.ProductType).all()
@@ -147,23 +138,3 @@ def get_client_user_consents(username: str, client_id: str, db: Session, refresh
             status=db_consent.status,
         )
     return list(all_consents.values())
-
-def upsert_product_type(product_type: dto.ProductTypeDTO, db: Session) -> dto.ProductTypeDTO:
-    db_product_type = db.query(models.ProductType).filter(models.ProductType.urn == product_type.urn).first()
-    if db_product_type is None:
-        new_product_type = models.ProductType(urn=product_type.urn, name=product_type.name)
-        db.add(new_product_type)
-        db.commit()
-        db.refresh(new_product_type)
-        return dto.ProductTypeDTO(
-            urn=new_product_type.urn,
-            name=new_product_type.name
-        )
-    else:
-        db_product_type.name = product_type.name
-        db.commit()
-        db.refresh(db_product_type)
-        return dto.ProductTypeDTO(
-            urn=db_product_type.urn,
-            name=db_product_type.name
-        )
