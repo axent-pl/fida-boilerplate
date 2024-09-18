@@ -10,8 +10,18 @@ class ProductTypeService:
     def __init__(self, db: Session = Depends(components.get_db)):
         self.db: Session = db
 
+    def get_all(self) -> dto.ProductTypeDTO:
+        product_types = []
+        db_product_types = self.db.query(models.ProductType).all()
+        for db_product_type in db_product_types:
+            product_type = dto.ProductTypeDTO(
+                urn=db_product_type.urn,
+                name=db_product_type.name
+            )
+            product_types.append(product_type)
+        return product_types
 
-    def upsert_product_type(self, product_type: dto.ProductTypeDTO) -> dto.ProductTypeDTO:
+    def upsert(self, product_type: dto.ProductTypeDTO) -> dto.ProductTypeDTO:
         db_product_type = self.db.query(models.ProductType).filter(models.ProductType.urn == product_type.urn).first()
         if db_product_type is None:
             new_product_type = models.ProductType(urn=product_type.urn, name=product_type.name)

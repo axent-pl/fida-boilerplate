@@ -21,6 +21,7 @@ import app.config as config
 from app.client_service import ClientService
 from app.user_service import UserService
 from app.product_type_service import ProductTypeService
+from app.consent_service import ConsentService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,7 +36,7 @@ app.add_middleware(SessionMiddleware, secret_key=config.settings.CS_SESSION_SECR
 @app.put('/admin/product-type/{urn}')
 async def upsert_product_type(urn: str, product_type: dto.ProductTypeDTO, product_type_service: ProductTypeService = Depends(ProductTypeService)):
      product_type.urn = urn
-     return product_type_service.upsert_product_type(product_type=product_type)
+     return product_type_service.upsert(product_type=product_type)
 
 
 @app.put("/admin/user/{username}")
@@ -52,8 +53,8 @@ async def upsert_client(id: str, client: dto.ClientDTO, client_service: ClientSe
 ###############################################################################
 
 @app.get('/authorization_grants')
-async def get_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user), client_service: ClientService = Depends(ClientService)):
-    consents = service.get_client_user_consents(username=user.username, client_id=client_id, db=db)
+async def get_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, consent_service: ConsentService = Depends(ConsentService), user: dto.UserDTO = Depends(components.get_user), client_service: ClientService = Depends(ClientService)):
+    consents = consent_service.find_all_by_username_and_client_id(username=user.username, client_id=client_id)
     
     client = client_service.get_client(client_id=client_id)
     if not client:
@@ -64,8 +65,8 @@ async def get_authorization_grants(request: Request, client_id: str, scope: str,
     return response_handlers.html({'consents':consents, 'client': client}, 'authorization-grants.html')
 
 @app.post('/authorization_grants')
-async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, db: Session = Depends(components.get_db), user: dto.UserDTO = Depends(components.get_user), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
-    consents = service.get_client_user_consents(username=user.username, client_id=client_id, db=db)
+async def save_authorization_grants(request: Request, client_id: str, scope: str, reponse_type: str, redirect_uri: str, consent_service: ConsentService = Depends(ConsentService), user: dto.UserDTO = Depends(components.get_user), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
+    consents = consent_service.find_all_by_username_and_client_id(username=user.username, client_id=client_id)
     
     client = client_service.get_client(client_id=client_id)
     if not client:
@@ -77,7 +78,7 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
     for consent in consents:
         if consent.key in form_consents:
             consent.status = form_consents[consent.key]
-    updated_consents = service.upsert_client_user_consents(consents=consents, db=db)
+    updated_consents = consent_service.upsert(consents=consents)
 
     authorization_code = service.get_authorization_code(redirect_uri=redirect_uri, client_id=client_id, username=user.username, code_db=code_db)
     
@@ -87,7 +88,7 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
     return RedirectResponse(url=str(redirect_url), status_code=303)
 
 @app.post('/token')
-async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), db: Session = Depends(components.get_db), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
+async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), consent_service: ConsentService = Depends(ConsentService), code_db: redis.Redis = Depends(components.get_code_db), client_service: ClientService = Depends(ClientService)):
     client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
@@ -100,7 +101,7 @@ async def issue_token(request: Request, client_id: str = Form(), client_secret: 
         authorization_request = service.get_authorization_request(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id, code_db=code_db)
         if not authorization_request:
             raise HTTPException(status_code=400, detail="Invalid authorization_code")
-        consents = service.get_client_user_consents(username=authorization_request.get('username'), client_id=client_id, db=db)
+        consents = consent_service.find_all_by_username_and_client_id(username=authorization_request.get('username'), client_id=client_id)
         claims = {
             'iss': 'consent-service',
             'typ': 'Bearer',
