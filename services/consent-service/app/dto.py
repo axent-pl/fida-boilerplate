@@ -16,6 +16,7 @@ class UserDTO(BaseModel):
 class ClientDTO(BaseModel):
     id: str
     redirect_uri: str
+    secret: Optional[str] = None
 
 class ProductTypeDTO(BaseModel):
     urn: Optional[str] = None

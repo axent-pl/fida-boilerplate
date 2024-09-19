@@ -10,6 +10,9 @@ class Client(Base):
     __tablename__ = "clients"
     id = Column(String, primary_key=True, index=True)
     redirect_uri = Column(String)
+    secret_hash = Column(String, nullable=True)
+    jwks_url = Column(String, nullable=True)
+    issuer = Column(String, nullable=True)
 
 class ProductType(Base):
     __tablename__ = "product_types"
