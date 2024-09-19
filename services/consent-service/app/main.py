@@ -89,14 +89,12 @@ async def save_authorization_grants(request: Request, client_id: str, scope: str
     return RedirectResponse(url=str(redirect_url), status_code=303)
 
 @app.post('/token')
-async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), consent_service: ConsentService = Depends(ConsentService), authorization_service: AuthorizationService = Depends(AuthorizationService), client_service: ClientService = Depends(ClientService)):
+async def issue_token(request: Request, client_id: str = Form(), client_secret: str = Form(None), client_assertion_type: str = Form(None), client_assertion: str = Form(None), code: str = Form(), redirect_uri:str = Form(None), grant_type: str = Form(), consent_service: ConsentService = Depends(ConsentService), authorization_service: AuthorizationService = Depends(AuthorizationService), client_service: ClientService = Depends(ClientService)):
     client = client_service.get_client(client_id=client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Invalid client_id")
-    
-    # authenticate client
-    # * by client_secret
-    # * by client_assertion_type='urn:ietf:params:oauth:client-assertion-type:jwt-bearer' and client_assertion
+    if not client_service.authenticate(client_id=client_id, client_secret=client_secret, client_assertion_type=client_assertion_type, client_assertion=client_assertion):
+        raise HTTPException(status_code=401, detail="Invalid client credentials")
 
     if grant_type == 'authorization_code':
         authorization_request = authorization_service.get_authorization_request(authorization_code=code, redirect_uri=redirect_uri, client_id=client_id)

@@ -10,6 +10,12 @@ class ClientService:
     def __init__(self, db: Session = Depends(components.get_db)):
         self.db: Session = db
 
+    def authenticate(self, client_id: str, client_secret: str = None, client_assertion_type: str = None, client_assertion: str = None) -> bool:
+        # authenticate client
+        # * by client_secret
+        # * by client_assertion_type='urn:ietf:params:oauth:client-assertion-type:jwt-bearer' and client_assertion
+        return True
+
     def get_client(self, client_id: str) -> dto.ClientDTO:
         db_client = self.db.query(models.Client).filter(models.Client.id == client_id).first()
         if db_client is not None:
