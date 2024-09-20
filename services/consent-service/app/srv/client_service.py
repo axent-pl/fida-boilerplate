@@ -9,40 +9,26 @@ import app.components as components
 import app.dto as dto
 import app.models as models
 
-from app.srv.token_service import TokenService
+from app.srv.oauth_service import OAuthService
 
 class ClientService:
 
-    def __init__(self, db: Session = Depends(components.get_db), token_service: TokenService = Depends(TokenService)):
+    def __init__(self, db: Session = Depends(components.get_db), oauth_service: OAuthService = Depends(OAuthService)):
         self.db: Session = db
-        self.token_service = token_service
-        self.pwd_context: CryptContext = CryptContext(
-            schemes=["bcrypt"], deprecated="auto")
+        self.oauth_service: OAuthService = oauth_service
+        self.pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def _authenticate_with_client_secret(self, db_client: models.Client, client_secret: str) -> bool:
         return (db_client.secret_hash and self.pwd_context.verify(client_secret, db_client.secret_hash))
     
     def _authenticate_with_client_assertion(self, db_client: models.Client, client_assertion: str) -> bool:
         try:
-            key = self.token_service.get_key(db_client.jwks_url)
-            token = jwt.JWT(jwt=client_assertion, key=key)
-            claims = json.loads(token.claims)
-
+            key = self.oauth_service.get_key(jwks_url=db_client.jwks_url)
+            if not self.oauth_service.validate_serialized_token(token=client_assertion, key=key):
+                return False
+            claims = self.oauth_service.extract_serialized_token_claims(token=client_assertion)
             if claims.get('iss') != db_client.issuer:
                 return False
-            
-            # Verify expiration time (exp)
-            current_time = int(time.time())
-            if 'exp' in claims:
-                exp = int(claims['exp'])
-                if current_time > exp:
-                    return False
-
-            # Verify not before time (nbf)
-            if 'nbf' in claims:
-                nbf = int(claims['nbf'])
-                if current_time < nbf:
-                    return False
         except:
             return False
         
