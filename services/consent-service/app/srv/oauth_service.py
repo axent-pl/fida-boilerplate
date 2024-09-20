@@ -18,6 +18,7 @@ class OAuthService:
 
     def __init__(self, db: redis.Redis = Depends(components.get_code_db)):
         self.db: redis.Redis = db
+        self.db_ns = config.settings.CD_CODE_NAMESPACE
 
     def get_authorization_code(
             self,
@@ -45,7 +46,7 @@ class OAuthService:
             'username': username,
         })
         authorization_code = secrets.token_urlsafe(length)
-        self.db.set(authorization_code, data,
+        self.db.set(f'{self.db_ns}:{authorization_code}', data,
                     ex=config.settings.CS_CODE_TTL_SECONDS)
         return authorization_code
 
@@ -66,7 +67,7 @@ class OAuthService:
         Returns:
             dict: The stored data associated with the authorization code if valid, None otherwise.
         """
-        data_bytes = self.db.get(authorization_code)
+        data_bytes = self.db.get(f'{self.db_ns}:{authorization_code}')
         if data_bytes is None:
             return None
         
